@@ -16,42 +16,43 @@ on:
         required: true
 
 jobs:
-  test-and-deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      # Install project dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Run model tests
       - name: Run tests
         env:
           MLFLOW_TRACKING_URI: http://localhost:5000
         run: |
           pytest tests/test_model.py
 
-      # Notify Slack on test failure
       - name: Notify Slack (Test Failure)
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: 'mlflow-cicd'
-          text: 'Test stage failed in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
+          text: 'Test stage failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
 
-      # Deploy to Dev environment
+  deploy-dev:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Deploy to Dev
         run: |
           mkdir -p kubernetes/backups
@@ -60,7 +61,6 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on Dev deployment success
       - name: Notify Slack (Dev Success)
         if: success()
         uses: slackapi/slack-github-action@v1.23.0
@@ -69,7 +69,6 @@ jobs:
           channel-id: 'mlflow-cicd'
           text: 'Model deployed to Dev successfully: ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }}'
 
-      # Rollback Dev on failure
       - name: Rollback Dev on Failure
         if: failure()
         run: |
@@ -82,7 +81,6 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on Dev deployment failure
       - name: Notify Slack (Dev Failure)
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
@@ -91,9 +89,16 @@ jobs:
           channel-id: 'mlflow-cicd'
           text: 'Dev deployment failed and rolled back for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
 
-      # Deploy to UAT environment (only for Production stage)
+  deploy-uat:
+    needs: deploy-dev
+    if: github.event.inputs.stage == 'Production'
+    runs-on: ubuntu-latest
+    environment: uat  # Requires approval via GitHub environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Deploy to UAT
-        if: github.event.inputs.stage == 'Production'
         run: |
           mkdir -p kubernetes/backups
           cp kubernetes/uat-deployment.yaml kubernetes/backups/uat-deployment-backup.yaml || true
@@ -101,18 +106,16 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on UAT deployment success
       - name: Notify Slack (UAT Success)
-        if: success() && github.event.inputs.stage == 'Production'
+        if: success()
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: 'mlflow-cicd'
           text: 'Model deployed to UAT successfully: ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }}'
 
-      # Rollback UAT on failure
       - name: Rollback UAT on Failure
-        if: failure() && github.event.inputs.stage == 'Production'
+        if: failure()
         run: |
           if [ -f kubernetes/backups/uat-deployment-backup.yaml ]; then
             kubectl apply -f kubernetes/backups/uat-deployment-backup.yaml
@@ -123,18 +126,24 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on UAT deployment failure
       - name: Notify Slack (UAT Failure)
-        if: failure() && github.event.inputs.stage == 'Production'
+        if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: 'mlflow-cicd'
           text: 'UAT deployment failed and rolled back for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
 
-      # Deploy to Prod environment (only for Production stage)
+  deploy-prod:
+    needs: deploy-uat
+    if: github.event.inputs.stage == 'Production'
+    runs-on: ubuntu-latest
+    environment: prod  # Requires approval via GitHub environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Deploy to Prod
-        if: github.event.inputs.stage == 'Production'
         run: |
           mkdir -p kubernetes/backups
           cp kubernetes/prod-deployment.yaml kubernetes/backups/prod-deployment-backup.yaml || true
@@ -142,18 +151,16 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on Prod deployment success
       - name: Notify Slack (Prod Success)
-        if: success() && github.event.inputs.stage == 'Production'
+        if: success()
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: 'mlflow-cicd'
           text: 'Model deployed to Prod successfully: ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }}'
 
-      # Rollback Prod on failure
       - name: Rollback Prod on Failure
-        if: failure() && github.event.inputs.stage == 'Production'
+        if: failure()
         run: |
           if [ -f kubernetes/backups/prod-deployment-backup.yaml ]; then
             kubectl apply -f kubernetes/backups/prod-deployment-backup.yaml
@@ -164,9 +171,8 @@ jobs:
         env:
           KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
-      # Notify Slack on Prod deployment failure
       - name: Notify Slack (Prod Failure)
-        if: failure() && github.event.inputs.stage == 'Production'
+        if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
