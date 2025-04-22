@@ -38,6 +38,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
+          echo "Running tests for model: ${{ github.event.inputs.model_name }} version: ${{ github.event.inputs.version }}"
+          echo "Running tests for stage: ${{ secrets.SLACK_WEBHOOK_URL }}"
           pytest tests/test_model.py
 
       - name: Notify Slack (Test Failure)
@@ -51,6 +53,7 @@ jobs:
             }
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   deploy-dev:
     needs: test
