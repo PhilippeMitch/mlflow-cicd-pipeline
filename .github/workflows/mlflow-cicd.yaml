@@ -21,7 +21,7 @@ jobs:
 
     environment:
         name: development
-        
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -69,7 +69,7 @@ jobs:
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          channel-id: 'mlflow-cicd'
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack-message: |
             {
               "text": "🚨 *Test stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
