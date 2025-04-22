@@ -38,18 +38,19 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
-          echo "MLFLOW_TRACKING_URI: $SLACK_WEBHOOK_URL"
-          echo "Running tests for model: ${{ github.event.inputs.model_name }} version: ${{ github.event.inputs.version }}"
           pytest tests/test_model.py
-          
 
       - name: Notify Slack (Test Failure)
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           channel-id: 'mlflow-cicd'
-          slack-message: 'Test stage failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
+          slack-message: |
+            {
+              "text": "🚨 *Test stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   deploy-dev:
     needs: test
