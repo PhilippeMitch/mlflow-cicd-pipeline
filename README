@@ -1,0 +1,54 @@
+# MLflow CI/CD Pipeline
+
+This project demonstrates setting up an MLflow webhook to trigger CI/CD pipelines in Jenkins and GitHub Actions for automated testing and deployment of an MLflow model, with monitoring for model drift.
+
+## Prerequisites
+- Docker and Docker Compose
+- Kubernetes (e.g., Minikube for local setup)
+- Python 3.9+
+- Slack account and bot token
+- GitHub repository with Actions enabled
+
+## Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/USER/REPO.git
+   cd mlflow-cicd-pipeline
+   ```
+
+2. Create a `.env` file with the following:
+   ```plaintext
+   GITHUB_TOKEN=your_github_token
+   SLACK_TOKEN=your_slack_bot_token
+   ```
+
+3. Run the setup:
+   ```bash
+   make setup
+   ```
+
+## Usage
+- Access MLflow at `http://localhost:5000`
+- Access Jenkins at `http://localhost:8080/jenkins`
+- Trigger webhook simulation:
+  ```bash
+  make trigger-webhook
+  ```
+- Monitor drift:
+  ```bash
+  make monitor-drift
+  ```
+
+## CI/CD Pipelines
+- **Jenkins**: Configured via `cicd/Jenkinsfile`. Tests the model and deploys to Dev, UAT (with approval), and Prod (with approval).
+- **GitHub Actions**: Configured via `cicd/.github/workflows/mlflow-cicd.yml`. Similar workflow to Jenkins.
+
+## Monitoring
+- Drift monitoring is implemented in `scripts/monitor_drift.py` using Evidently.
+- Notifications are sent to Slack when drift is detected.
+
+## Inference
+- Run inference with `scripts/inference.py`:
+  ```bash
+  python scripts/inference.py
+  ```

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-model-prod
+  namespace: prod
+  labels:
+    app: mlflow-model
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mlflow-model
+  template:
+    metadata:
+      labels:
+        app: mlflow-model
+    spec:
+      containers:
+      - name: mlflow-model
+        image: mlflow-model:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: "http://localhost:5000"
+        - name: MODEL_NAME
+          value: "adult-classifier"
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1024Mi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        
+        volumeMounts:
+        - name: mlflow-artifacts
+          mountPath: /mlflow/artifacts
+
+      volumes:
+      # Volume for accessing MLflow artifacts stored on external storage
+      - name: mlflow-artifacts
+        hostPath:
+          # Example: Path to the directory on the external storage device
+          path: /D:/ci-cd-volumes/mlflow-artifacts/prod
+          type: Directory
