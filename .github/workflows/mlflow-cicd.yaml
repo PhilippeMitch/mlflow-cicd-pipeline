@@ -39,7 +39,17 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
           echo "Running tests for model: ${{ github.event.inputs.model_name }} version: ${{ github.event.inputs.version }}"
-          echo "Running tests for stage: ${{ secrets.SLACK_WEBHOOK_URL }}"
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "❌ SLACK_WEBHOOK_URL is not set"
+          else
+            echo "✅ SLACK_WEBHOOK_URL is set"
+          fi
+
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "❌ SLACK_BOT_TOKEN is not set"
+          else
+            echo "✅ SLACK_BOT_TOKEN is set"
+          fi
           pytest tests/test_model.py
 
       - name: Notify Slack (Test Failure)
