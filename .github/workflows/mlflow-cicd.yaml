@@ -18,6 +18,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    environment:
+        name: development
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -37,6 +41,7 @@ jobs:
           MLFLOW_TRACKING_URI: http://localhost:5000
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
         run: |
           echo "Running tests for model: ${{ github.event.inputs.model_name }} version: ${{ github.event.inputs.version }}"
           if [ -z "$SLACK_WEBHOOK_URL" ]; then
@@ -50,6 +55,14 @@ jobs:
           else
             echo "✅ SLACK_BOT_TOKEN is set"
           fi
+
+          if [ -z "$MLFLOW_TRACKING_URI" ]; then
+            echo "❌ MLFLOW_TRACKING_URI is not set"
+          else
+            echo "✅ MLFLOW_TRACKING_URI is set"
+          fi
+  
+          echo "Running tests..."
           pytest tests/test_model.py
 
       - name: Notify Slack (Test Failure)
