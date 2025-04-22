@@ -35,8 +35,13 @@ jobs:
       - name: Run tests
         env:
           MLFLOW_TRACKING_URI: http://localhost:5000
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
+          echo "MLFLOW_TRACKING_URI: $SLACK_WEBHOOK_URL"
+          echo "Running tests for model: ${{ github.event.inputs.model_name }} version: ${{ github.event.inputs.version }}"
           pytest tests/test_model.py
+          
 
       - name: Notify Slack (Test Failure)
         if: failure()
