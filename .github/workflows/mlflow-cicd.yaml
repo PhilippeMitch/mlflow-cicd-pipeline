@@ -1,18 +1,21 @@
 name: MLflow CI/CD
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
       model_name:
-        description: 'MLflow model name'
-        default: 'adult-classifier'
+        description: MLflow model name
+        default: adult-classifier
         required: true
       version:
-        description: 'Model version'
-        default: '1.0.0'
+        description: Model version
+        default: 1.0.0
         required: true
       stage:
-        description: 'Model stage'
+        description: Model stage
         required: true
 
 jobs:
@@ -22,12 +25,12 @@ jobs:
       name: development
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -79,19 +82,19 @@ jobs:
       name: development
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push to Docker Hub (Dev)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/serve/Dockerfile
@@ -108,7 +111,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'Docker image pushed to Dev successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:dev-${{ github.event.inputs.version }}'
 
       - name: Notify Slack (Dev Failure)
@@ -116,7 +119,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'Dev image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
 
   deploy-uat:
@@ -126,19 +129,19 @@ jobs:
     environment: uat
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push to Docker Hub (UAT)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/serve/Dockerfile
@@ -155,7 +158,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'Docker image pushed to UAT successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:uat-${{ github.event.inputs.version }}'
 
       - name: Notify Slack (UAT Failure)
@@ -163,7 +166,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'UAT image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
 
   deploy-prod:
@@ -173,19 +176,19 @@ jobs:
     environment: prod
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push to Docker Hub (Prod)
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/serve/Dockerfile
@@ -202,7 +205,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'Docker image pushed to Prod successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:prod-${{ github.event.inputs.version }}'
 
       - name: Notify Slack (Prod Failure)
@@ -210,5 +213,5 @@ jobs:
         uses: slackapi/slack-github-action@v1.23.0
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: 'mlflow-cicd'
+          channel-id: mlflow-cicd
           text: 'Prod image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
