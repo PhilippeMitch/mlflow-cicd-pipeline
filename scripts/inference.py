@@ -1,14 +1,23 @@
 import mlflow
 import pandas as pd
 import joblib
+import redis
 
 # Configuration
 MLFLOW_TRACKING_URI = "http://localhost:5000"
 MODEL_NAME = "adult-classifier"
 PREPROCESSOR_PATH = "feature_store/preprocessor.joblib"
 
+r = redis.Redis(host='redis', port=6379, db=0)
+
+
 def perform_inference(input_data):
     """Perform inference using the latest Production model."""
+    cache_key = f"prediction:{input_data.to_json()}"
+    if r.exists(cache_key):
+        predictions = r.get(cache_key).decode()
+        return predictions
+
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     client = mlflow.tracking.MlflowClient()
     model_version = client.get_latest_versions(MODEL_NAME, stages=["Production"])[0]
@@ -16,7 +25,9 @@ def perform_inference(input_data):
     preprocessor = joblib.load(PREPROCESSOR_PATH)
     input_transformed = preprocessor.transform(input_data)
     predictions = model.predict(input_transformed)
+    r.set(cache_key, str(predictions), ex=3600)
     return predictions
+
 
 if __name__ == "__main__":
     # Sample input data matching Adult dataset schema

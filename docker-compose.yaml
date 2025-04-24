@@ -1,41 +1,75 @@
-version: '3.8'
 services:
   postgres:
-    image: postgres:13
+    image: postgres:13.11
     environment:
-      POSTGRES_USER: mlflow
-      POSTGRES_PASSWORD: mlflow
-      POSTGRES_DB: mlflow
+      POSTGRES_USER: ${MLFLOW_DB_USER:-mlflow}
+      POSTGRES_PASSWORD: ${MLFLOW_DB_PASSWORD:-mlflow}
+      POSTGRES_DB: ${MLFLOW_DB_NAME:-mlflow}
+
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - D:/ci-cd-volumes/docker-data/postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - 5432:5432
 
   mlflow:
-    image: mlflow/mlflow
+    build:
+      context: .
+      dockerfile: docker/mlflow/Dockerfile
+    environment:
+      MLFLOW_DB_USER: ${MLFLOW_DB_USER}
+      MLFLOW_DB_PASSWORD: ${MLFLOW_DB_PASSWORD}
+      MLFLOW_DB_NAME: ${MLFLOW_DB_NAME}
     command: >
       mlflow server
-      --backend-store-uri postgresql://mlflow:mlflow@postgres:5432/mlflow
+      --backend-store-uri postgresql://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@postgres:5432/${MLFLOW_DB_NAME}
       --default-artifact-root /mlflow/artifacts
       --host 0.0.0.0
     volumes:
-      - mlflow_artifacts:/mlflow/artifacts
+      - D:/ci-cd-volumes/docker-data/mlflow:/mlflow/artifacts
     ports:
-      - "5000:5000"
+      - 5000:5000
     depends_on:
       - postgres
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:5000]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:2.426.3-lts-jdk17
     ports:
-      - "8080:8080"
-      - "50000:50000"
+      - 8080:8080
+      - 50000:50000
     volumes:
-      - jenkins_home:/var/jenkins_home
+      - D:/ci-cd-volumes/docker-data/jenkins:/var/jenkins_home
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
+    user: 1000:1000
 
-volumes:
-  postgres_data:
-  mlflow_artifacts:
-  jenkins_home:
+  redis:
+    image: redis:7.0
+    ports:
+      - 6379:6379
+    volumes:
+      - D:/ci-cd-volumes/docker-data/redis:/data
+    networks:
+      - mlflow-network
+    command: redis-server --appendonly yes
+
+
+  # mlflow-serving:
+  #   image: myusername/adult-classifier:dev-1.0.0
+  #   ports:
+  #     - 8000:8000
+  #   environment:
+  #     - MLFLOW_TRACKING_URI=http://mlflow:5000
+  #   depends_on:
+  #     - mlflow
+  #   healthcheck:
+  #     test: [CMD, curl, -f, http://localhost:8000]
+  #     interval: 30s
+
+networks:
+  mlflow-network:
+    driver: bridge

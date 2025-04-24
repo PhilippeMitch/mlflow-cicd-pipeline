@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# ignore ALL .csv files
+*.csv
+
+# ignore ALL .joblib files
+.joblib
+
+# ignore ALL files in the logs
+logs/
+
+# ignore ALL files in the models
+models/
+
+# ignore the .env file
+.env
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# venv
+venv/
+
+# local virtual environment
+mlops/
+
+# ignore ALL files in the .vscode directory
+.vscode/
+
+# ignore notes.txt
+notes.txt
+pycache/
+feature_store/
+kubernetes/backups/

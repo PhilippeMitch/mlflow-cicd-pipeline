@@ -23,6 +23,20 @@ down:
 	@echo "Stopping Docker Compose services..."
 	docker-compose -f $(COMPOSE_FILE) down
 
+down-all:
+	@echo "Stopping all Docker containers..."
+	docker-compose down
+	@echo "Removing all Docker containers..."
+	docker rm $(docker ps -a -q)
+
+# create volume directories
+create-volumes:
+	@echo "Creating volume directories..."
+	mkdir -p D:/ci-cd-volumes/docker-data/postgres
+	mkdir -p D:/ci-cd-volumes/docker-data/mlflow
+	mkdir -p D:/ci-cd-volumes/docker-data/jenkins
+	mkdir -p D:/ci-cd-volumes/docker-data/redis
+
 # Setup: Install dependencies and start services
 setup: install up
 	@echo "Setup complete. MLflow at $(MLFLOW_URL), Jenkins at $(JENKINS_URL)"
@@ -44,7 +58,11 @@ clean:
 	rm -rf __pycache__
 
 train-model:
-    @echo "Training model..."
-    python scripts/train_model.py
+	@echo "Training model..."
+	python scripts/train_model.py
 
-.PHONY: all install up down setup trigger-webhook monitor-drift clean
+check-redis:
+	@echo "Checking Redis status..."
+	redis-cli -h localhost -p 6379 PING
+
+.PHONY: all install up down setup trigger-webhook monitor-drift clean train-model check-redis

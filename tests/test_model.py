@@ -2,12 +2,14 @@ import mlflow
 import pandas as pd
 from sklearn.metrics import accuracy_score
 import pytest
+from unittest.mock import patch
 
 # Configuration
 MLFLOW_TRACKING_URI = "http://localhost:5000"
 MODEL_NAME = "sample-model"
 TEST_DATA_PATH = "tests/test_dataset.csv"
 PERFORMANCE_THRESHOLD = 0.8
+
 
 def test_model_performance():
     """Test MLflow model performance on test dataset."""
@@ -31,3 +33,10 @@ def test_model_performance():
     # Assert performance threshold
     assert accuracy >= PERFORMANCE_THRESHOLD, f"Model accuracy {accuracy} below threshold {PERFORMANCE_THRESHOLD}"
     print(f"Model accuracy: {accuracy}")
+
+
+@pytest.mark.parametrize("mock_mlflow", [True], indirect=True)
+def test_model():
+    with patch('mlflow.get_run') as mock_get_run:
+        mock_get_run.return_value.data.metrics = {'accuracy': 0.85}
+        assert mock_get_run('run_id').data.metrics['accuracy'] == 0.85

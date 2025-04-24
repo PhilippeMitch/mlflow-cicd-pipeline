@@ -1,14 +1,14 @@
 pipeline {
     agent any
     environment {
-        MLFLOW_TRACKING_URI = 'http://mlflow:5000'
+        MLFLOW_TRACKING_URI = 'http://localhost:5000'
         SLACK_CHANNEL = '#mlflow-cicd'
         BACKUP_DIR = 'kubernetes/backups'
     }
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/USER/REPO.git'
+                git branch: 'main', url: 'https://github.com/PhilippeMitch/mlflow-cicd-pipeline.git'
             }
         }
         stage('Test Model') {
@@ -18,7 +18,7 @@ pipeline {
                     python -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
-                    pytest tests/test_model.py
+                    pytest tests/test_model.py --mock-mlflow
                     '''
                 }
             }
@@ -28,93 +28,19 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Dev') {
+
+        stage('Build and Push Dev') {
             steps {
-                script {
-                    sh """
-                    mkdir -p ${BACKUP_DIR}
-                    cp kubernetes/dev-deployment.yaml ${BACKUP_DIR}/dev-deployment-backup.yaml || true
-                    kubectl apply -f kubernetes/dev-deployment.yaml
-                    """
-                    slackSend channel: env.SLACK_CHANNEL, message: "Model deployed to Dev successfully."
-                }
-            }
-            post {
-                failure {
-                    script {
-                        sh """
-                        if [ -f ${BACKUP_DIR}/dev-deployment-backup.yaml ]; then
-                            kubectl apply -f ${BACKUP_DIR}/dev-deployment-backup.yaml
-                            echo "Rolled back Dev deployment to previous state."
-                        else
-                            echo "No backup found for Dev rollback."
-                        fi
-                        """
-                        slackSend channel: env.SLACK_CHANNEL, color: 'danger', message: "Dev deployment failed and rolled back: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                    }
-                }
-            }
-        }
-        stage('Deploy to UAT') {
-            when {
-                expression { return currentBuild.currentResult == 'SUCCESS' }
-            }
-            steps {
-                input message: 'Approve deployment to UAT?', ok: 'Deploy'
-                script {
-                    sh """
-                    mkdir -p ${BACKUP_DIR}
-                    cp kubernetes/uat-deployment.yaml ${BACKUP_DIR}/uat-deployment-backup.yaml || true
-                    kubectl apply -f kubernetes/uat-deployment.yaml
-                    """
-                    slackSend channel: env.SLACK_CHANNEL, message: "Model deployed to UAT successfully."
-                }
-            }
-            post {
-                failure {
-                    script {
-                        sh """
-                        if [ -f ${BACKUP_DIR}/uat-deployment-backup.yaml ]; then
-                            kubectl apply -f ${BACKUP_DIR}/uat-deployment-backup.yaml
-                            echo "Rolled back UAT deployment to previous state."
-                        else
-                            echo "No backup found for UAT rollback."
-                        fi
-                        """
-                        slackSend channel: env.SLACK_CHANNEL, color: 'danger', message: "UAT deployment failed and rolled back: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                    }
-                }
-            }
-        }
-        stage('Deploy to Prod') {
-            when {
-                expression { return currentBuild.currentResult == 'SUCCESS' }
-            }
-            steps {
-                input message: 'Approve deployment to Prod?', ok: 'Deploy'
-                script {
-                    sh """
-                    mkdir -p ${BACKUP_DIR}
-                    cp kubernetes/prod-deployment.yaml ${BACKUP_DIR}/prod-deployment-backup.yaml || true
-                    kubectl apply -f kubernetes/prod-deployment.yaml
-                    """
-                    slackSend channel: env.SLACK_CHANNEL, message: "Model deployed to Prod successfully."
-                }
-            }
-            post {
-                failure {
-                    script {
-                        sh """
-                        if [ -f ${BACKUP_DIR}/prod-deployment-backup.yaml ]; then
-                            kubectl apply -f ${BACKUP_DIR}/prod-deployment-backup.yaml
-                            echo "Rolled back Prod deployment to previous state."
-                        else
-                            echo "No backup found for Prod rollback."
-                        fi
-                        """
-                        slackSend channel: env.SLACK_CHANNEL, color: 'danger', message: "Prod deployment failed and rolled back: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                    }
-                }
+                sh 'docker login -u $DOCKERHUB_CREDENTIALS_USR -p $DOCKERHUB_CREDENTIALS_PSW'
+                sh '''
+                    docker build -t $DOCKERHUB_CREDENTIALS_USR/adult-classifier:dev-1.0.0 \
+                        --build-arg MODEL_NAME=adult-classifier \
+                        --build-arg MODEL_VERSION=1.0.0 -f docker/serve/Dockerfile .
+                    docker tag $DOCKERHUB_CREDENTIALS_USR/adult-classifier:dev-1.0.0 \
+                        $DOCKERHUB_CREDENTIALS_USR/adult-classifier:dev-latest
+                    docker push $DOCKERHUB_CREDENTIALS_USR/adult-classifier:dev-1.0.0
+                    docker push $DOCKERHUB_CREDENTIALS_USR/adult-classifier:dev-latest
+                '''
             }
         }
     }

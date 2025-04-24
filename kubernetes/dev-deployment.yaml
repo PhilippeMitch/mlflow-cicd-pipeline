@@ -24,21 +24,21 @@ spec:
         env:
         # MLflow Tracking URI pointing to the local MLflow server
         - name: MLFLOW_TRACKING_URI
-          value: "http://localhost:5000"
+          value: http://localhost:5000
         # Name of the registered model in the MLflow Model Registry
         - name: MODEL_NAME
-          value: "adult-classifier"
+          value: adult-classifier
         # Path to the model artifact (if required)
         - name: MODEL_ARTIFACT_PATH
-          value: "/mlflow/artifacts"
+          value: /mlflow/artifacts
         resources:
           # Resource limits and requests for local development
           limits:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: 500m
+            memory: 512Mi
           requests:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: 200m
+            memory: 256Mi
         # Mount the external storage directory into the container
         volumeMounts:
         - name: mlflow-artifacts

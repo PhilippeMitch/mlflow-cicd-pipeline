@@ -22,16 +22,16 @@ spec:
         - containerPort: 8000
         env:
         - name: MLFLOW_TRACKING_URI
-          value: "http://localhost:5000"
+          value: http://localhost:5000
         - name: MODEL_NAME
-          value: "adult-classifier"
+          value: adult-classifier
         resources:
           limits:
-            cpu: "1000m"
-            memory: "1024Mi"
+            cpu: 1000m
+            memory: 1024Mi
           requests:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: 500m
+            memory: 512Mi
         
         volumeMounts:
         - name: mlflow-artifacts
