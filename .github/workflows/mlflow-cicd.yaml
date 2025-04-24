@@ -67,12 +67,14 @@ jobs:
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          slack-message: |
-            {
-              "text": "🚨 *Test stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
-            }
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          webhook-type: incoming-webhook
+          payload: |
+              text: "❌ *Test stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}. Check the logs for more details."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "❌ *Test stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}. Check the logs for more details."
 
       - name: Notify Slack (Test Success)
         if: success()
