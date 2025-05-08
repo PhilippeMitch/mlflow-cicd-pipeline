@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 # Configuration
-MLFLOW_TRACKING_URI = "https://mitch-mlops.duckdns.org/mlflow"
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 MODEL_NAME = "adult-classifier"
 FEATURE_STORE_PATH = "feature_store/features.csv"
 PREPROCESSOR_PATH = "feature_store/preprocessor.joblib"
@@ -40,10 +40,9 @@ def initialize_redis():
     try:
         redis_password = os.environ.get("REDIS_PASSWORD")
         redis_port = int(os.environ.get("REDIS_PORT", 6379))
-        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        redis_host = os.environ.get("REDIS_HOST", "redis")
         print(f"redis_port: {redis_port}")
         print(f"redis_host: {redis_host}")
-        print(f"redis_password: {redis_password}")
         r = redis.Redis(
             host=redis_host,
             port=redis_port,
