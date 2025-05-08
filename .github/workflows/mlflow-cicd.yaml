@@ -60,7 +60,7 @@ jobs:
             echo "✅ MLFLOW_TRACKING_URI is set"
           fi
           echo "Running tests..."
-          pytest tests/test_model.py --mock-mlflow
+          pytest tests/test_model.py
 
       - name: Notify Slack (Test Failure)
         if: failure()
