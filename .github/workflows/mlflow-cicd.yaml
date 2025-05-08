@@ -50,21 +50,19 @@ jobs:
 
       - name: Train Model
         env:
-          REDIS_HOST: localhost
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: python scripts/train_model.py
 
       - name: Verify Model Metadata
         env:
-          REDIS_HOST: localhost
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           python -c "from mlflow.tracking import MlflowClient; \
           client = MlflowClient(); \
           versions = client.search_model_versions(\"name='adult-classifier'\"); \
-          for v in versions: \
-              print(f'Version: {v.version}, Created by: {v.tags.get(\"created_by\")}, \
-              Stage: {v.current_stage}, Description: {v.description}')"
+          [print(f'Version: {v.version}, Created by: {v.tags.get(\"created_by\")}, Stage: {v.current_stage}, Description: {v.description}') for v in versions]"
 
       - name: Run tests
         env:
