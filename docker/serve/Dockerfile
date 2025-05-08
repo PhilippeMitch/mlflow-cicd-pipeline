@@ -1,4 +1,3 @@
-# Use Python base image
 FROM python:3.9-slim
 
 # Install MLflow and dependencies
@@ -12,14 +11,15 @@ RUN pip install -r requirements.txt
 WORKDIR /app
 
 # Copy model artifacts (optional, if model is fetched from MLflow)
-COPY feature_store/ ./feature_store/
+# COPY feature_store/ ./feature_store/
 
 # Environment variables for MLflow model serving
 ARG MODEL_NAME
 ARG MODEL_VERSION
+ARG MLFLOW_TRACKING_URI
 ENV MODEL_NAME=${MODEL_NAME}
 ENV MODEL_VERSION=${MODEL_VERSION}
-ENV MLFLOW_TRACKING_URI=http://mlflow:5000
+ENV MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
 
 # Expose port for model serving
 EXPOSE 8000
