@@ -19,10 +19,21 @@ on:
         required: true
 
 jobs:
-  test:
+  train-and-test:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.0
+        options: --entrypoint redis-server
+        ports:
+          - 6379:6379
+        env:
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_ARGS: --requirepass ${{ secrets.REDIS_PASSWORD }}
+
     environment:
       name: development
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,6 +47,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Train Model
+        env:
+          REDIS_HOST: localhost
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+        run: python scripts/train_model.py
+
+      - name: Verify Model Metadata
+        env:
+          REDIS_HOST: localhost
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+        run: |
+          python -c "from mlflow.tracking import MlflowClient; \
+          client = MlflowClient(); \
+          versions = client.search_model_versions(\"name='adult-classifier'\"); \
+          for v in versions: \
+              print(f'Version: {v.version}, Created by: {v.tags.get(\"created_by\")}, \
+              Stage: {v.current_stage}, Description: {v.description}')"
 
       - name: Run tests
         env:
@@ -81,13 +110,17 @@ jobs:
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          slack-message: |
-            {
+          webhook-type: incoming-webhook
+          payload: |
               "text": "✅ *Test stage succeeded* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
-            }
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "✅ *Test stage succeeded* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
 
   deploy-dev:
-    needs: test
+    needs: train-and-test
     runs-on: ubuntu-latest
     environment:
       name: development

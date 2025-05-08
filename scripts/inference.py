@@ -4,7 +4,7 @@ import joblib
 import redis
 
 # Configuration
-MLFLOW_TRACKING_URI = "http://localhost:5000"
+MLFLOW_TRACKING_URI = "https://mitch-mlops.duckdns.org/mlflow"
 MODEL_NAME = "adult-classifier"
 PREPROCESSOR_PATH = "feature_store/preprocessor.joblib"
 

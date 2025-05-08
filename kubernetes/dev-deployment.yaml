@@ -22,15 +22,22 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        # MLflow Tracking URI pointing to the local MLflow server
-        - name: MLFLOW_TRACKING_URI
-          value: https://lmitch-mlops.duckdns.org/mlflow
-        # Name of the registered model in the MLflow Model Registry
-        - name: MODEL_NAME
-          value: adult-classifier
-        # Path to the model artifact (if required)
-        - name: MODEL_ARTIFACT_PATH
-          value: /mlflow/artifacts
+          # MLflow Tracking URI pointing to the local MLflow server
+          - name: MLFLOW_TRACKING_URI
+            value: https://mitch-mlops.duckdns.org/mlflow
+          # Name of the registered model in the MLflow Model Registry
+          - name: MODEL_NAME
+            value: adult-classifier
+          # Path to the model artifact (if required)
+          - name: MODEL_ARTIFACT_PATH
+            value: /mlflow/artifacts
+          - name: REDIS_HOST
+            value: redis
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: redis-secret
+                key: REDIS_PASSWORD
         resources:
           # Resource limits and requests for local development
           limits:

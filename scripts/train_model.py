@@ -1,4 +1,5 @@
 import mlflow
+from mlflow.tracking import MlflowClient
 from xgboost import XGBClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -14,15 +15,22 @@ from pathlib import Path
 import redis
 from mlflow.models import MetricThreshold, infer_signature
 import json
+import getpass
+
+from dotenv import load_dotenv
+load_dotenv(".env")
 
 # Configuration
-MLFLOW_TRACKING_URI = "http://localhost:5000"
+MLFLOW_TRACKING_URI = "https://mitch-mlops.duckdns.org/mlflow"
 MODEL_NAME = "adult-classifier"
 FEATURE_STORE_PATH = "feature_store/features.csv"
 PREPROCESSOR_PATH = "feature_store/preprocessor.joblib"
 ARTIFACT_PATH = "model"
 EXPERIMENT_NAME = "adult-classifier-experiment"
 REDIS_TTL = 86400  # 24 hours in seconds
+CREATED_BY = getpass.getuser()
+INITIAL_STAGE = "Staging"
+MODEL_DESCRIPTION = "XGBoost classifier for UCI Adult dataset, trained with hyperparameter tuning."
 
 # Ensure feature store directory exists
 Path(FEATURE_STORE_PATH).parent.mkdir(parents=True, exist_ok=True)
@@ -30,7 +38,19 @@ Path(FEATURE_STORE_PATH).parent.mkdir(parents=True, exist_ok=True)
 # Initialize Redis client
 def initialize_redis():
     try:
-        r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        redis_password = os.environ.get("REDIS_PASSWORD")
+        redis_port = int(os.environ.get("REDIS_PORT", 6379))
+        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        print(f"redis_port: {redis_port}")
+        print(f"redis_host: {redis_host}")
+        print(f"redis_password: {redis_password}")
+        r = redis.Redis(
+            host=redis_host,
+            port=redis_port,
+            db=0,
+            password=redis_password,
+            decode_responses=True
+        )
         r.ping()
     except redis.ConnectionError as e:
         print(f"Warning: Failed to connect to Redis: {e}")
@@ -157,6 +177,7 @@ def cache_metrics_and_metadata(run_type, model_name, metrics, metadata):
 def main():
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
+    client = MlflowClient()
 
     X, y = load_data()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
@@ -171,7 +192,13 @@ def main():
         f1 = f1_score(y_test, y_pred, average="weighted")
 
         candidate_metrics = {"accuracy": accuracy, "f1_score": f1}
-        candidate_metadata = {"run_id": candidate_run.info.run_id, "best_params": grid_search.best_params_}
+        candidate_metadata = {
+            "run_id": candidate_run.info.run_id,
+            "best_params": grid_search.best_params_,
+            "created_by": CREATED_BY,
+            "stage": INITIAL_STAGE,
+            "description": MODEL_DESCRIPTION
+        }
         cache_metrics_and_metadata("candidate", MODEL_NAME, candidate_metrics, candidate_metadata)
 
         mlflow.log_params(grid_search.best_params_)
@@ -183,6 +210,15 @@ def main():
         for col in ["age", "capital-gain", "hours-per-week"]:
             X_train_sample.loc[X_train_sample.sample(frac=0.1, random_state=42).index, col] = None
         signature = infer_signature(X_train_sample, candidate_model.predict(X_train))
+
+        # Log schema as a tag
+        schema_dict = signature.to_dict()
+        mlflow.set_tag("schema", json.dumps(schema_dict))
+
+        # Set additional tags
+        mlflow.set_tag("created_by", CREATED_BY)
+        mlflow.set_tag("stage", INITIAL_STAGE)
+        mlflow.set_tag("description", MODEL_DESCRIPTION)
 
         # Define custom conda environment
         conda_env = {
@@ -211,6 +247,17 @@ def main():
             registered_model_name=MODEL_NAME,
             conda_env=conda_env
         ).model_uri
+
+        # Get the registered model version
+        model_version = [v for v in client.search_model_versions(f"name='{MODEL_NAME}'") if v.run_id == candidate_run.info.run_id]
+        if model_version:
+            version = model_version[0].version
+            # Set model version description
+            client.update_model_version(
+                name=MODEL_NAME,
+                version=version,
+                description=MODEL_DESCRIPTION
+            )
 
         joblib.dump(candidate_model.named_steps["preprocessor"], PREPROCESSOR_PATH)
         mlflow.log_artifact(PREPROCESSOR_PATH)
@@ -250,6 +297,12 @@ def main():
         cache_metrics_and_metadata("baseline", MODEL_NAME, baseline_metrics, baseline_metadata)
 
         signature = infer_signature(X_train_sample, baseline_model.predict(X_train))
+
+        # Log schema as a tag
+        mlflow.set_tag("schema", json.dumps(signature.to_dict()))
+        mlflow.set_tag("created_by", CREATED_BY)
+        mlflow.set_tag("stage", "None")
+        mlflow.set_tag("description", "Baseline DummyClassifier for comparison")
 
         baseline_model_uri = mlflow.sklearn.log_model(
             sk_model=baseline_model,
@@ -298,6 +351,40 @@ def main():
     except Exception as e:
         validation_status = "failed"
         print(f"Validation failed: {e}")
+
+    # Transition candidate model to Staging if validation passes
+    if model_version and validation_status == "passed":
+        latest_prod = client.get_latest_versions(MODEL_NAME, stages=["Production"])
+        if latest_prod:
+            prod_run = client.get_run(latest_prod[0].run_id)
+            prod_accuracy = prod_run.data.metrics.get("accuracy", 0)
+            if accuracy > prod_accuracy and f1 > prod_run.data.metrics.get("f1_score", 0):
+                client.transition_model_version_stage(
+                    name=MODEL_NAME,
+                    version=version,
+                    stage=INITIAL_STAGE,
+                    archive_existing_versions=True
+                )
+                print(f"Transitioned model {MODEL_NAME} version {version} to {INITIAL_STAGE} (better accuracy: {accuracy} vs {prod_accuracy})")
+            else:
+                print(f"Model {MODEL_NAME} version {version} not promoted (accuracy {accuracy} <= {prod_accuracy})")
+        else:
+            client.transition_model_version_stage(
+                name=MODEL_NAME,
+                version=version,
+                stage=INITIAL_STAGE,
+                archive_existing_versions=True
+            )
+            print(f"Transitioned model {MODEL_NAME} version {version} to {INITIAL_STAGE} (no previous Production model)")
+
+    if validation_status == "failed" and latest_prod:
+        client.transition_model_version_stage(
+            name=MODEL_NAME,
+            version=latest_prod[0].version,
+            stage="Production",
+            archive_existing_versions=True
+        )
+        print(f"Restored previous Production version {latest_prod[0].version} due to validation failure")
 
     if r is not None:
         try:

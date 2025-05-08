@@ -4,11 +4,30 @@ pipeline {
         MLFLOW_TRACKING_URI = 'https://lmitch-mlops.duckdns.org/mlflow'
         SLACK_CHANNEL = '#mlflow-cicd'
         BACKUP_DIR = 'kubernetes/backups'
+        REDIS_HOST = 'redis'
+        REDIS_PASSWORD = credentials('redis-password')
     }
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/PhilippeMitch/mlflow-cicd-pipeline.git'
+            }
+        }
+        stage('Train Model') {
+            steps {
+                sh 'python scripts/train_model.py'
+            }
+        }
+        stage('Check Model Metadata') {
+            steps {
+                sh '''
+                    python -c "from mlflow.tracking import MlflowClient; \\
+                    client = MlflowClient(); \\
+                    versions = client.search_model_versions(\\"name='adult-classifier'\\"); \\
+                    for v in versions: \\
+                        print(f'Version: {v.version}, Created by: {v.tags.get(\\'created_by\\')}, \\
+                        Stage: {v.current_stage}, Description: {v.description}')"
+                '''
             }
         }
         stage('Test Model') {
@@ -18,7 +37,7 @@ pipeline {
                     python -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
-                    pytest tests/test_model.py --mock-mlflow
+                    pytest tests/test_model.py
                     '''
                 }
             }

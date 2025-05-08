@@ -55,13 +55,17 @@ services:
 
   redis:
     image: redis:7.0
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - 6379:6379
     volumes:
       - D:/ci-cd-volumes/docker-data/redis:/data
     networks:
       - mlflow-network
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
 
   nginx:
       image: nginx
