@@ -22,7 +22,7 @@ spec:
         - containerPort: 8000
         env:
         - name: MLFLOW_TRACKING_URI
-          value: http://localhost:5000
+          value: https://lmitch-mlops.duckdns.org/mlflow
         - name: MODEL_NAME
           value: adult-classifier
         resources:

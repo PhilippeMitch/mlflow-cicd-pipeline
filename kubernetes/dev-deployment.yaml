@@ -24,7 +24,7 @@ spec:
         env:
         # MLflow Tracking URI pointing to the local MLflow server
         - name: MLFLOW_TRACKING_URI
-          value: http://localhost:5000
+          value: https://lmitch-mlops.duckdns.org/mlflow
         # Name of the registered model in the MLflow Model Registry
         - name: MODEL_NAME
           value: adult-classifier

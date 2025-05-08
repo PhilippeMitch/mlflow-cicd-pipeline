@@ -22,18 +22,18 @@ spec:
         - containerPort: 8000
         env:
         - name: MLFLOW_TRACKING_URI
-          value: "http://localhost:5000"
+          value: https://lmitch-mlops.duckdns.org/mlflow
         - name: MODEL_NAME
-          value: "adult-classifier"
+          value: adult-classifier
         - name: MODEL_ARTIFACT_PATH
-          value: "/mlflow/artifacts"
+          value: /mlflow/artifacts
         resources:
           limits:
-            cpu: "750m"
-            memory: "768Mi"
+            cpu: 750m
+            memory: 768Mi
           requests:
-            cpu: "300m"
-            memory: "384Mi"
+            cpu: 300m
+            memory: 384Mi
         volumeMounts:
         - name: mlflow-artifacts
           mountPath: /mlflow/artifacts

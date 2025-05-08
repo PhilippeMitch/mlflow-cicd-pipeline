@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        MLFLOW_TRACKING_URI = 'http://localhost:5000'
+        MLFLOW_TRACKING_URI = 'https://lmitch-mlops.duckdns.org/mlflow'
         SLACK_CHANNEL = '#mlflow-cicd'
         BACKUP_DIR = 'kubernetes/backups'
     }

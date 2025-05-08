@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pyc
+*.pem
+
 
 # ignore ALL .csv files
 *.csv
@@ -39,3 +41,7 @@ notes.txt
 pycache/
 feature_store/
 kubernetes/backups/
+
+# ignore the nginx directory
+nginx/
+nginx/certs/
