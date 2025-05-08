@@ -1,7 +1,10 @@
 FROM python:3.11-slim
 
-# Install MLflow and dependencies
-RUN pip install mlflow==2.8.1 psycopg2-binary==2.9.6
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    software-properties-common \
 
 # Copy requirements.txt and install additional dependencies
 COPY requirements.txt .
