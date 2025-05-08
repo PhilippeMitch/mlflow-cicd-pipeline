@@ -1,6 +1,6 @@
 import os
-import mlflow
 import pytest
+import mlflow
 from unittest.mock import patch
 
 # Configuration
