@@ -27,6 +27,9 @@ models/
 # pytest
 .pytest_cache/
 
+# ducdns
+duckdns-credentials.ini
+
 # venv
 venv/
 
