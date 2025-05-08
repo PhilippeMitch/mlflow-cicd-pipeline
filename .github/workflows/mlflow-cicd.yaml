@@ -152,17 +152,29 @@ jobs:
         if: success()
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'Docker image pushed to Dev successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:dev-${{ github.event.inputs.version }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "✅ *Dev stage succeeded* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "✅ Docker image pushed to Dev successfully: `${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:dev-${{ github.event.inputs.version }}`"
 
       - name: Notify Slack (Dev Failure)
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'Dev image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "❌ *Dev stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}. Check the logs for more details."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "❌ Dev image push failed for `${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}`"
 
   deploy-uat:
     needs: deploy-dev

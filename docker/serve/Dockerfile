@@ -1,20 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.10-bullseye
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies required by scientific packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    git \
     curl \
-    software-properties-common \
+    wget \
+    libgomp1 \
+    gfortran \
+    libglib2.0-0 \
+    libxext6 \
+    libsm6 \
+    libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt and install additional dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# Set working directory
+# Set workdir before copying files
 WORKDIR /app
 
-# Copy model artifacts (optional, if model is fetched from MLflow)
-# COPY feature_store/ ./feature_store/
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # Environment variables for MLflow model serving
 ARG MODEL_NAME
@@ -27,5 +32,5 @@ ENV MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
 # Expose port for model serving
 EXPOSE 8000
 
-# Command to serve the model
+# Run MLflow model server
 CMD ["sh", "-c", "mlflow models serve -m models:/${MODEL_NAME}/${MODEL_VERSION} -h 0.0.0.0 -p 8000 --env-manager local"]
