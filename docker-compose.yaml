@@ -40,7 +40,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s  # Give MLflow time to start and connect to the database
+      start_period: 60s
 
   jenkins:
     build:
