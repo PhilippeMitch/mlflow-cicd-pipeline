@@ -48,10 +48,10 @@ services:
       - 8080:8080
       - 50000:50000
     volumes:
-      - D:/ci-cd-volumes/docker-data/jenkins:/var/jenkins_home
+      - jenkins_home:/var/jenkins_home
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
-    user: 1000:1000
+
 
   redis:
     image: redis:7.0
@@ -98,3 +98,6 @@ services:
 networks:
   mlflow-network:
     driver: bridge
+
+volumes:
+  jenkins_home:

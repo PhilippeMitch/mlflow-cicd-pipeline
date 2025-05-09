@@ -180,7 +180,7 @@ jobs:
     needs: deploy-dev
     if: github.event.inputs.stage == 'Production'
     runs-on: ubuntu-latest
-    environment: uat
+    environment: staging
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -239,7 +239,7 @@ jobs:
     needs: deploy-uat
     if: github.event.inputs.stage == 'Production'
     runs-on: ubuntu-latest
-    environment: prod
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
