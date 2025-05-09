@@ -1,8 +1,11 @@
+import os
 from mlflow.tracking import MlflowClient
+from dotenv import load_dotenv
+load_dotenv(".env")
 
 # Configuration
 MODEL_NAME = "adult-classifier"
-MLFLOW_TRACKING_URI = "https://mitch-mlops.duckdns.org/mlflow"
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 def rollback_model():
     """Roll back to the last archived Production version and display metadata."""

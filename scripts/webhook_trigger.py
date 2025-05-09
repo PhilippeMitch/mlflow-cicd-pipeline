@@ -2,16 +2,14 @@ import mlflow
 import requests
 import os
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+load_dotenv(".env")
 
 # Configuration
-MLFLOW_TRACKING_URI = "http://localhost:5000"
-JENKINS_WEBHOOK_URL = "http://localhost:8080/jenkins/generic-webhook-trigger/invoke?token=mlflow_trigger"
-GITHUB_ACTION_DISPATCH_URL = "https://api.github.com/repos/USER/REPO/actions/workflows/mlflow-cicd.yml/dispatches"
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+JENKINS_WEBHOOK_URL = os.environ.get("JENKINS_WEBHOOK_URL")
+GITHUB_ACTION_DISPATCH_URL = os.environ.get("GITHUB_ACTION_DISPATCH_URL")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-MODEL_NAME = "sample-model"
+MODEL_NAME = "adult-classifier"
 NEW_STAGE = "Production"
 
 def trigger_webhooks(model_name, version, stage):

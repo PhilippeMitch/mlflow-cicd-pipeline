@@ -5,13 +5,11 @@ from evidently.metric_preset import DataDriftPreset, TargetDriftPreset
 from slack_sdk import WebClient
 import os
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+load_dotenv(".env")
 
 # Configuration
-MLFLOW_TRACKING_URI = "http://localhost:5000"
-MODEL_NAME = "sample-model"
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+MODEL_NAME = "adult-classifier"
 REFERENCE_DATA_PATH = "tests/test_dataset.csv"
 CURRENT_DATA_PATH = "tests/current_dataset.csv"
 SLACK_TOKEN = os.getenv("SLACK_TOKEN")

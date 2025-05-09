@@ -1,10 +1,13 @@
+import os
 import mlflow
 import pandas as pd
 import joblib
 import redis
+from dotenv import load_dotenv
+load_dotenv(".env")
 
 # Configuration
-MLFLOW_TRACKING_URI = "https://mitch-mlops.duckdns.org/mlflow"
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 MODEL_NAME = "adult-classifier"
 PREPROCESSOR_PATH = "feature_store/preprocessor.joblib"
 

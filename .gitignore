@@ -29,6 +29,8 @@ models/
 
 # ducdns
 duckdns-credentials.ini
+redis_test_conn.py
+scripts/notify.py
 
 # venv
 venv/

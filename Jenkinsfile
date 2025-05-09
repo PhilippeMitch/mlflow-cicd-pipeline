@@ -24,9 +24,7 @@ pipeline {
                     python -c "from mlflow.tracking import MlflowClient; \\
                     client = MlflowClient(); \\
                     versions = client.search_model_versions(\\"name='adult-classifier'\\"); \\
-                    for v in versions: \\
-                        print(f'Version: {v.version}, Created by: {v.tags.get(\\'created_by\\')}, \\
-                        Stage: {v.current_stage}, Description: {v.description}')"
+                    [print(f'Version: {v.version}, Created by: {v.tags.get(\"created_by\")}, Stage: {v.current_stage}, Description: {v.description}') for v in versions]"
                 '''
             }
         }

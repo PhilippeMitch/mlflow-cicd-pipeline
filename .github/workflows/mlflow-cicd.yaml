@@ -150,7 +150,7 @@ jobs:
 
       - name: Notify Slack (Dev Success)
         if: success()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
@@ -164,7 +164,7 @@ jobs:
 
       - name: Notify Slack (Dev Failure)
         if: failure()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
@@ -209,19 +209,31 @@ jobs:
 
       - name: Notify Slack (UAT Success)
         if: success()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'Docker image pushed to UAT successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:uat-${{ github.event.inputs.version }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "✅ *UAT stage succeeded* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "✅ Docker image pushed to UAT successfully: `${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:uat-${{ github.event.inputs.version }}`"
 
       - name: Notify Slack (UAT Failure)
         if: failure()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'UAT image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "❌ *UAT stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}. Check the logs for more details."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "❌ UAT image push failed for `${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}`"
 
   deploy-prod:
     needs: deploy-uat
@@ -256,16 +268,28 @@ jobs:
 
       - name: Notify Slack (Prod Success)
         if: success()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'Docker image pushed to Prod successfully: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:prod-${{ github.event.inputs.version }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "✅ *Prod stage succeeded* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "✅ Docker image pushed to Prod successfully: `${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.inputs.model_name }}:prod-${{ github.event.inputs.version }}`"
 
       - name: Notify Slack (Prod Failure)
         if: failure()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v2.0.0
         with:
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          channel-id: mlflow-cicd
-          text: 'Prod image push failed for ${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+              "text": "❌ *Prod stage failed* for `${{ github.event.inputs.model_name }}` v${{ github.event.inputs.version }} in GitHub Actions job `${{ github.job }}` run #${{ github.run_number }}. Check the logs for more details."
+              blocks:
+                - type: section
+                  text:
+                    type: mrkdwn
+                    text: "❌ Prod image push failed for `${{ github.event.inputs.model_name }} v${{ github.event.inputs.version }} in GitHub Actions: ${{ github.job }} #${{ github.run_number }}`"
