@@ -43,14 +43,21 @@ services:
       start_period: 60s  # Give MLflow time to start and connect to the database
 
   jenkins:
-    image: jenkins/jenkins:2.426.3-lts-jdk17
+    build:
+      context: .
+      dockerfile: docker/jenkins/Dockerfile
     ports:
       - 8080:8080
       - 50000:50000
     volumes:
       - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
+    restart: unless-stopped
+    networks:
+      - mlflow-network
 
 
   redis:

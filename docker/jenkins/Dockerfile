@@ -1,20 +1,18 @@
-FROM jenkins/jenkins:2.426.3-lts-jdk17
-
-# Update packages to address vulnerabilities
-USER root
-RUN apt-get update && apt-get upgrade -y && apt-get clean
-
-# Add a healthcheck to monitor the container's health
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8080/login || exit 1
+FROM jenkins/jenkins:2.504.1-jdk21
 
 USER root
-# Fix permissions on volume at startup
-RUN echo '#!/bin/bash\n\
-  chown -R 1000:1000 /var/jenkins_home\n\
-  chmod -R u+rw /var/jenkins_home\n\
-  exec gosu jenkins "$@"' > /usr/local/bin/jenkins-entrypoint.sh && \
-  chmod +x /usr/local/bin/jenkins-entrypoint.sh
 
+# Install required tools
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y python3 python3-pip git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/bin/python3 /usr/bin/python
+
+# Optional: Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/login || exit 1
+
+# Restore Jenkins user
 USER jenkins
-ENTRYPOINT ["/usr/local/bin/jenkins-entrypoint.sh"]
-CMD ["/sbin/tini", "--", "/usr/local/bin/jenkins.sh"]

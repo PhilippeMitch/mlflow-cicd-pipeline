@@ -1,11 +1,16 @@
 pipeline {
     agent any
     environment {
-        MLFLOW_TRACKING_URI = 'https://lmitch-mlops.duckdns.org/mlflow'
+        MLFLOW_TRACKING_URI = 'https://mitch-mlops.duckdns.org/mlflow'
         SLACK_CHANNEL = '#mlflow-cicd'
         BACKUP_DIR = 'kubernetes/backups'
         REDIS_HOST = 'redis'
         REDIS_PASSWORD = credentials('redis-password')
+    }
+    stage('Clean Workspace') {
+        steps {
+            cleanWs()
+        }
     }
     stages {
         stage('Checkout') {
